@@ -108,7 +108,7 @@ For many of these applications, having the yield as a smooth function of the mat
 
 Measuring a Treasury's yield is also not as straightforward as it might seem. On any given day, the price on a given Treasury issue (note that prices are inverse to yields, yields go down whe prices go up) may be affected by any number of idiosyncratic factors. Individual issues may have much lower or higher prices than expected due to random market factors, such as a major dealer needing to cover a large position. There are also several well-known price effects, such as the on-the-run premium, where recently-issued Treasuries usually have significantly higher prices.
 
-In order to study the estimation of these yield curves, we use Treasury yield data from the Center for Research in Security Prices (CRSP), University of Chicago Booth School of Business. These data are available from Wharton Research Data Services (WRDS)\footnote{\url{http://wrds-web.wharton.upenn.edu/wrds/}}. They includes end-of-day Treasury yield data on the entire cross-section of available Treasury notes and bonds for the last 50 years, though we will only use data from several specific days to illustrate the methods.
+In order to study the estimation of these yield curves, we use Treasury yield data from the Center for Research in Security Prices (CRSP), University of Chicago Booth School of Business. These data are available from Wharton Research Data Services (WRDS)\footnote{\url{http://wrds-web.wharton.upenn.edu/wrds/}}. They include end-of-day Treasury yield data on the entire cross-section of available Treasury notes and bonds for the last 50 years, though we will only use data from several specific days to illustrate the methods. Figure~\ref{fig:ex_ns} shows yields plotted against maturities for two example days, January 12, 2012 and June 14, 2006.
 
 
 %===========================================================================%
@@ -142,36 +142,41 @@ These functional forms are standard methods for fitting Treasury yield curves. F
 
 \subsection{Estimation}
 
-The parameters in Equation~\ref{eq:svensson} are using by minimizing the mean-squared error of the data over the parameter vector $b = (\beta_0, \beta_1, \beta_2, \beta_3, \tau_1, \tau_2)$
+The parameters in Equation~\ref{eq:svensson} are estimated by numerically minimizing the mean-squared error of the data over the parameter vector $b = (\beta_0, \beta_1, \beta_2, \beta_3, \tau_1, \tau_2)$
 \begin{equation*}
 \hat{b} = \argmin_{b} \sum_{i=1}^n \left( \hat{y}(m_i) - y_i \right)^2
 \end{equation*}
-I
+where $(y_1, m_1), \dots, (y_n, m_n)$ are the observed yields and maturities of U.S. Treasury yields on a particular day.
 
+Figure~\ref{fig:ex_ns} shows the results of this estimation on two example days.\footnote{The code used for all the estimations here as well as the data preparation is available at \url{https://github.com/rogerfan/stat374_project/}.} Panel~\subref{fig:ex_ns_1-12-2012} shows the fit on a relatively prototypical yield curve. The yields are well-behaved and don't have any significant outliers. We can see that the Svensson function does a very good job of fitting the data here. A bootstrapped 95\% confidence band for the predictions is also shown, though it is extremely narrow.
 
 \begin{figure}[htb] \centering
     \begin{subfigure}[t]{.49\linewidth}
         \includegraphics[width=\linewidth]{include/ex_ns_2012-01-12.pdf}
-        \caption{Jan 12, 2012}
+        \caption{Jan 12, 2012} \label{fig:ex_ns_1-12-2012}
     \end{subfigure}
     \begin{subfigure}[t]{.49\linewidth}
         \includegraphics[width=\linewidth]{include/ex_ns_2006-06-14.pdf}
-        \caption{June 14, 2006}
+        \caption{June 14, 2006} \label{fig:ex_ns_6-14-2006}
     \end{subfigure}
     \caption{Fitted values from parametric Svensson models are shown as well as the raw yields. The shaded regions indicate the 95\% bootstrapped confidence intervals.}
     \label{fig:ex_ns}
 \end{figure}
+
+Panel~\subref{fig:ex_ns_6-14-2006} shows the fit on a more complicated day. Here, there are several potential outlier yields and multiple changes in direction and concavity. The Svensson model fits these yields very poorly. It does well on the short-term bonds, but is not very accurate for the medium- through long-term ones. The confidence inteval is also shown, and we can see that the true function is nowhere close to being trapped in the confidence band for longer-term maturities.
+
+
 
 
 
 \begin{figure}[htb] \centering
     \begin{subfigure}[t]{.49\linewidth}
         \includegraphics[width=\linewidth]{include/ex_loclin_2012-01-12.pdf}
-        \caption{Jan 12, 2012}
+        \caption{Jan 12, 2012} \label{fig:ex_loclin_1-12-2012}
     \end{subfigure}
     \begin{subfigure}[t]{.49\linewidth}
         \includegraphics[width=\linewidth]{include/ex_loclin_2006-06-14.pdf}
-        \caption{June 14, 2006}
+        \caption{June 14, 2006} \label{fig:ex_loclin_6-14-2006}
     \end{subfigure}
     \caption{Fitted values from local linear regressions are shown as well as the raw yields. The shaded regions indicate the 95\% confidence intervals.}
     \label{fig:ex_loclin}
@@ -191,14 +196,14 @@ I
 \begin{figure}[htb] \centering
     \begin{subfigure}[t]{.49\linewidth}
         \includegraphics[width=\linewidth]{include/change_2008-09-11.pdf}
-        \caption{Lehman Brothers Bankruptcy}
+        \caption{Lehman Brothers Bankruptcy} \label{fig:events_lehman}
     \end{subfigure}
     \begin{subfigure}[t]{.49\linewidth}
         \includegraphics[width=\linewidth]{include/change_2009-03-16.pdf}
-        \caption{LSAP Announcement}
+        \caption{LSAP Announcement} \label{fig:events_lsap}
     \end{subfigure}
     \caption{Estimated yield curves on consecutive business days around selected major financial events. Panel a shows the reaction to the fall of Lehman Brothers on September 15, 2008. Panel b shows the reaction to the Federal Reserve's announcement of its first large-scale asset purchase program for Treasury bonds on March 18, 2009. }
-    \label{fig:comparison_good}
+    \label{fig:events}
 \end{figure}
 
 
