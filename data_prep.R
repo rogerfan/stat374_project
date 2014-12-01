@@ -1,8 +1,6 @@
 rm(list = ls())
 
-
 setwd("M:/Google Drive/Classes/Stat 37400/project/")
-# setwd("C:/Users/g1rxf01/Downloads/New Folder/class/assignment4")
 
 
 data = read.csv("./data/treasury_data_raw.csv", sep=',')
