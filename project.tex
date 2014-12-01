@@ -1,0 +1,217 @@
+\documentclass[12pt]{article}
+
+% General
+\usepackage[round]{natbib}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage[section]{placeins}
+\usepackage[hidelinks]{hyperref}
+\usepackage{graphicx}
+\usepackage{color}
+
+% Tables/Figures
+\usepackage{lscape}
+\usepackage{booktabs}
+\usepackage{rotating}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+
+% Math
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{dsfont}
+
+% \doublespacing
+\onehalfspacing
+% \singlespacing
+
+\geometry{paper=letterpaper, margin=1in}
+\captionsetup{font=small}
+
+% Code
+\usepackage{listings}
+
+\definecolor{commentgrey}{gray}{0.45}
+\definecolor{backgray}{gray}{0.96}
+\lstset{language=R, basicstyle=\footnotesize, keywordstyle=\footnotesize,
+        backgroundcolor=\color{backgray}, commentstyle=\color{commentgrey}, frame=single, rulecolor=\color{backgray},
+        showstringspaces=false, breakatwhitespace=true, breaklines=true,
+        numbers=left, numberstyle=\footnotesize\color{commentgrey}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% User-defined LaTeX commands
+\DeclareMathOperator*{\Cov}{Cov}
+\DeclareMathOperator*{\Var}{Var}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+\newcommand*{\foralls}{\ \forall \ }
+\newcommand*{\E}{\mathbb E}
+\newcommand*{\R}{\mathbb R}
+\newcommand*{\I}{\mathds{1}}
+\newcommand*{\Prob}{\mathbb P}
+\newcommand*{\notorth}{\ensuremath{\perp\!\!\!\!\!\!\diagup\!\!\!\!\!\!\perp}}
+\newcommand*{\orth}{\ensuremath{\perp\!\!\!\perp}}
+\newcommand*{\dif}{\,\mathrm{d}}
+\newcommand*{\Dif}[1]{\,\mathrm{d^#1}}
+\newcommand*{\e}{\mathrm{e}}
+\newcommand*{\m}[1]{\textbf{#1}}
+\newcommand*{\bmath}[1]{\boldsymbol{#1}}
+\newcommand*{\yestag}{\addtocounter{equation}{1}\tag{\theequation}}
+\newcommand*{\notaligned}[1]{\noalign{$\displaystyle #1$}}
+
+\makeatletter
+\newsavebox{\mybox}\newsavebox{\mysim}
+\newcommand*{\distas}[1]{%
+  \savebox{\mybox}{\hbox{\kern3pt$\scriptstyle#1$\kern3pt}}%
+  \savebox{\mysim}{\hbox{$\sim$}}%
+  \mathbin{\overset{#1}{\kern\z@\resizebox{\wd\mybox}{\ht\mysim}{$\sim$}}}%
+}
+\makeatother
+\newcommand*{\dist}{\sim}
+\newcommand*{\distiid}{\distas{\text{i.i.d}}}
+
+\newcommand*{\convas}[1]{\xrightarrow{#1}}
+\newcommand*{\conv}{\convas{}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+
+%***************
+% Title Page
+%***************
+
+\title{Stat 374: Final Project}
+\author{Roger Fan}
+\date{\today}
+
+\maketitle
+
+
+
+%===========================================================================%
+\section{Introduction}
+%===========================================================================%
+
+U.S. Treasuries are the standard riskless asset, and because of that they have many important applications and uses in economics and finance. Their yields are often used in economics to approximate the sum of expected inflation and the discount function, or time-value of money, without having to worry about risk premiums. In finance, they have a myriad of uses, including benchmarking other assets, hedging risk, and being liquid collateral or short-term investments. Treasuries are an integral part of the financial system, much of the activity of traders, dealers, and clearinghouses involves Treasuries in some way.
+
+For many of these applications, having the yield as a smooth function of the maturity of the bond is useful. This is because Treasuries are not constantly being issued, so there are often gaps in the available maturities each day. If a bond is indexed to the 10-year Treasury yield, we need a way to estimate that yield if there are no Treasuries with exactly that much time left to maturity.
+
+Measuring a Treasury's yield is also not as straightforward as it might seem. On any given day, the price on a given Treasury issue (note that prices are inverse to yields, yields go down whe prices go up) may be affected by any number of idiosyncratic factors. Individual issues may have much lower or higher prices than expected due to random market factors, such as a major dealer needing to cover a large position. There are also several well-known price effects, such as the on-the-run premium, where recently-issued Treasuries usually have significantly higher prices.
+
+In order to study the estimation of these yield curves, we use Treasury yield data from the Center for Research in Security Prices (CRSP), University of Chicago Booth School of Business. These data are available from Wharton Research Data Services (WRDS)\footnote{\url{http://wrds-web.wharton.upenn.edu/wrds/}}. They includes end-of-day Treasury yield data on the entire cross-section of available Treasury notes and bonds for the last 50 years, though we will only use data from several specific days to illustrate the methods.
+
+
+%===========================================================================%
+\section{Nelson-Siegel-Svensson}
+%===========================================================================%
+
+\subsection{Model}
+
+An early standard parametric used to fit yield curves was introduced by \citet{nelsonsiegel1987}. The Nelson-Siegel approach does not have a theoretical underpinning, it is simply an attempt to find a functional form that can capture the common yield-curve shapes. The function they ultimately suggest is
+\begin{equation}
+\hat{y}(m) = \beta_0
+    + \beta_1 \frac{1-\exp(-m/\tau)}{m/\tau}
+    + \beta_2 \left( \frac{1-\exp(-m/\tau)}{m/\tau} - \exp(-m/\tau) \right)
+\label{eq:ns}
+\end{equation}
+where $y$ is the yield, $m$ is the maturity, and $\beta_0$, $\beta_1$, $\beta_2$, and $\tau$ are parameters to be estimated. This function has an initial value and asymptote defined by $\beta_0$ and $\beta_1$, then adds a ``hump'' in the middle, whose location and size are determined by $\beta_2$ and $\tau$, respectively.
+
+The Nelson-Siegel method tends to fit short- to medium- term yields well, but often fit longer-term yield poorly. To improve the fit, \citet{svensson1994} added an additional term, resulting in
+\begin{align}
+\begin{split}
+\hat{y}(m) &= \beta_0
+    + \beta_1 \frac{1-\exp(-m/\tau_1)}{m/\tau_1}
+    + \beta_2 \left( \frac{1-\exp(-m/\tau_1)}{m/\tau_1} - \exp(-m/\tau_1) \right) \\
+    &\qquad+ \beta_3 \left( \frac{1-\exp(-m/\tau_2)}{m/\tau_2} - \exp(-m/\tau_2) \right)
+\end{split} \label{eq:svensson}
+\end{align}
+Here, an additional hump defined by $\beta_3$ and $\tau_2$ is added. This is the same as the Nelson-Siegel specification when $\beta_3 = 0$, but otherwise can use the second hump to better fit long-term maturities.
+
+These functional forms are standard methods for fitting Treasury yield curves. For instance, \citet{gsw06} include yield curve data fit using this methodology that are published daily by economists at the Board of Governors of the Federal Reserve System.\footnote{Available at \url{http://www.federalreserve.gov/econresdata/researchdata/feds200628.xls}.}
+
+
+\subsection{Estimation}
+
+The parameters in Equation~\ref{eq:svensson} are using by minimizing the mean-squared error of the predictions over the parameter vector $b = (\beta_0, \beta_1, \beta_2, \beta_3, \tau_1, \tau_2)$
+\begin{equation*}
+\hat{b} = \argmin_{b} \sum_{i=1}^n \left( \hat{y}(m_i) - y_i \right)^2
+\end{equation*}
+
+
+\begin{figure}[htb] \centering
+    \begin{subfigure}[t]{.49\linewidth}
+        \includegraphics[width=\linewidth]{include/ex_ns_2012-01-12.pdf}
+        \caption{Jan 12, 2012}
+    \end{subfigure}
+    \begin{subfigure}[t]{.49\linewidth}
+        \includegraphics[width=\linewidth]{include/ex_ns_2006-06-14.pdf}
+        \caption{June 14, 2006}
+    \end{subfigure}
+    \caption{Fitted values from parametric Svensson models are shown as well as the raw yields. The shaded regions indicate the 95\% bootstrapped confidence intervals.}
+    \label{fig:ex_ns}
+\end{figure}
+
+
+
+\begin{figure}[htb] \centering
+    \begin{subfigure}[t]{.49\linewidth}
+        \includegraphics[width=\linewidth]{include/ex_loclin_2012-01-12.pdf}
+        \caption{Jan 12, 2012}
+    \end{subfigure}
+    \begin{subfigure}[t]{.49\linewidth}
+        \includegraphics[width=\linewidth]{include/ex_loclin_2006-06-14.pdf}
+        \caption{June 14, 2006}
+    \end{subfigure}
+    \caption{Fitted values from local linear regressions are shown as well as the raw yields. The shaded regions indicate the 95\% confidence intervals.}
+    \label{fig:ex_loclin}
+\end{figure}
+
+
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=.8\linewidth]{include/comparison_2006-06-14.pdf}
+    \caption{Estimated yield curves on June 14, 2006. Fitted values from a local linear regression and a parametric Svensson model are shown.}
+    \label{fig:comparison_bad}
+\end{figure}
+
+
+
+\begin{figure}[htb] \centering
+    \begin{subfigure}[t]{.49\linewidth}
+        \includegraphics[width=\linewidth]{include/change_2008-09-11.pdf}
+        \caption{Lehman Brothers Bankruptcy}
+    \end{subfigure}
+    \begin{subfigure}[t]{.49\linewidth}
+        \includegraphics[width=\linewidth]{include/change_2009-03-16.pdf}
+        \caption{LSAP Announcement}
+    \end{subfigure}
+    \caption{Estimated yield curves on consecutive business days around selected major financial events. Panel a shows the reaction to the fall of Lehman Brothers on September 15, 2008. Panel b shows the reaction to the Federal Reserve's announcement of its first large-scale asset purchase program for Treasury bonds on March 18, 2009. }
+    \label{fig:comparison_good}
+\end{figure}
+
+
+
+\vfill
+%===========================================================%
+%                                                           %
+%   Bibliography                                            %
+%                                                           %
+%===========================================================%
+\FloatBarrier
+% \pagebreak
+\bibliographystyle{apa}
+\bibliography{project}
+
+
+\end{document}
