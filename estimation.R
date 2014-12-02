@@ -94,6 +94,17 @@ data = read.csv("./data/treasury_data.csv")
 data$date = as.Date(data$date)
 
 
+ex_dates = c('2006-06-14', '2012-01-12')
+
+# Example data
+df = data.frame()
+for (ex_date in ex_dates) {
+    datum = data[data$date == as.Date(date),]
+    datum$variable = 'Raw Yields'
+    results[[1]] = datum
+}
+
+
 # Example curve fits
 ex_dates = c('2006-06-14', '2012-01-12')
 

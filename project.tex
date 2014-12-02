@@ -108,7 +108,9 @@ For many of these applications, having the yield as a smooth function of the mat
 
 Measuring a Treasury's yield is also not as straightforward as it might seem. On any given day, the price on a given Treasury issue (note that prices are inverse to yields, yields go down whe prices go up) may be affected by any number of idiosyncratic factors. Individual issues may have much lower or higher prices than expected due to random market factors, such as a major dealer needing to cover a large position. There are also several well-known price effects, such as the on-the-run premium, where recently-issued Treasuries usually have significantly higher prices.
 
-In order to study the estimation of these yield curves, we use Treasury yield data from the Center for Research in Security Prices (CRSP), University of Chicago Booth School of Business. These data are available from Wharton Research Data Services (WRDS)\footnote{\url{http://wrds-web.wharton.upenn.edu/wrds/}}. They include end-of-day Treasury yield data on the entire cross-section of available Treasury notes and bonds for the last 50 years, though we will only use data from several specific days to illustrate the methods. Figure~\ref{fig:ex_ns} shows yields plotted against maturities for two example days, January 12, 2012 and June 14, 2006.
+In order to study the estimation of these yield curves, we use Treasury yield data from the Center for Research in Security Prices (CRSP), University of Chicago Booth School of Business. These data are available from Wharton Research Data Services (WRDS)\footnote{\url{http://wrds-web.wharton.upenn.edu/wrds/}}. They include end-of-day Treasury yields on the entire cross-section of available Treasury notes and bonds for the last 50 years, though we will only use data from several specific days to illustrate the methods. Note that we omit Treasury bills and other forms of Treasury debt, limiting the data to outstanding notes and bonds. Figure~\ref{fig:ex_ns} shows yields plotted against maturities for two example days, January 12, 2012 and June 14, 2006.
+
+In terms of data preparation and cleaning, little was done.\footnote{The code used for data preparation as well as all of the following estimations is available at \url{https://github.com/rogerfan/stat374_project/}.} Bond maturity is converted from days to years and yields are converted from daily yields measured in percentage points to annual yields measured in basis points.\footnote{One percentage point is 100 basis points.} We deliberately leave outlier points in the data, as robustness to outliers is a desirable property for any smoothing method used.
 
 
 %===========================================================================%
@@ -139,6 +141,12 @@ Here, an additional hump defined by $\beta_3$ and $\tau_2$ is added. This is the
 
 These functional forms are standard methods for fitting Treasury yield curves. For instance, \citet{gsw06} include yield curve data fit using this methodology that are published daily by economists at the Board of Governors of the Federal Reserve System.\footnote{Available at \url{http://www.federalreserve.gov/econresdata/researchdata/feds200628.xls}.}
 
+The primary alternative parametric method for fitting yield curves is fitting a polynomial curve, where
+\begin{equation*}
+\hat{y}(m) = \beta_0 + \sum_{k=1}^K \beta_k m^k
+\end{equation*}
+Polynomial methods, however, are not preferred, as they result in arbitrarily high or low (negative) predictions for very long maturities. This is an undesirable property, as theory generally dictates that the yields asymptote to some constant value at higher maturities. The Nelson-Siegel and Svensson models are designed to do this and result in similar fits as polynomial methods for maturities within the data range. In practice, polynomial curves are almost never used.
+
 
 \subsection{Estimation}
 
@@ -148,7 +156,7 @@ The parameters in Equation~\ref{eq:svensson} are estimated by numerically minimi
 \end{equation*}
 where $(y_1, m_1), \dots, (y_n, m_n)$ are the observed yields and maturities of U.S. Treasury yields on a particular day.
 
-Figure~\ref{fig:ex_ns} shows the results of this estimation on two example days.\footnote{The code used for all the estimations here as well as the data preparation is available at \url{https://github.com/rogerfan/stat374_project/}.} Panel~\subref{fig:ex_ns_1-12-2012} shows the fit on a relatively prototypical yield curve. The yields are well-behaved and don't have any significant outliers. We can see that the Svensson function does a very good job of fitting the data here. A bootstrapped 95\% confidence band for the predictions is also shown, though it is extremely narrow.
+Figure~\ref{fig:ex_ns} shows the results of this estimation on two example days. Panel~\subref{fig:ex_ns_1-12-2012} shows the fit on a relatively prototypical yield curve. The yields are well-behaved and don't have any significant outliers. We can see that the Svensson function does a very good job of fitting the data here. A bootstrapped 95\% confidence band for the predictions is also shown, though it is extremely narrow.
 
 \begin{figure}[htb] \centering
     \begin{subfigure}[t]{.49\linewidth}
@@ -163,11 +171,43 @@ Figure~\ref{fig:ex_ns} shows the results of this estimation on two example days.
     \label{fig:ex_ns}
 \end{figure}
 
-Panel~\subref{fig:ex_ns_6-14-2006} shows the fit on a more complicated day. Here, there are several potential outlier yields and multiple changes in direction and concavity. The Svensson model fits these yields very poorly. It does well on the short-term bonds, but is not very accurate for the medium- through long-term ones. The confidence inteval is also shown, and we can see that the true function is nowhere close to being trapped in the confidence band for longer-term maturities.
+Panel~\subref{fig:ex_ns_6-14-2006} shows the fit on a more complicated day. Here, there are several potential outlier yields and multiple changes in direction and concavity. The Svensson model fits these yields very poorly. It does well on the short-term bonds, but is not very accurate for the medium- through long-term ones. This model is deliberately designed to asymptote towards a specific limit at high maturities, so it has trouble capturing the downward curve exhibited by the data. The confidence inteval is also shown, and we can see that the true function is not close to being trapped in the confidence band for longer-term maturities.
 
 
+%===========================================================================%
+\section{Local Linear Regression}
+%===========================================================================%
+
+\subsection{Model}
+
+One of the most commonly used nonparametric regression techniques is a local linear regression. This is a generalization of kernel smoothing where we perform a weighted regression around each of the data points and use the predicted intercept as the estimate.
+\begin{equation}
+\begin{gathered}
+\hat{y}(m) = \hat{\beta}_0(m) \text{ where}\\
+(\hat{\beta}_0(m), \dots, \hat{\beta}_D(m))
+    = \argmin_{\beta_0, \dots, \beta_D} \sum_{i=1}^n K_h (m_i, m) \left(
+        y_i - \beta_0 - \sum_{d=1}^D \beta_d (m_i - m)^d
+    \right)^2
+\end{gathered} \label{eq:loclin}
+\end{equation}
+$D$ is the number of polynomial degrees in the local regression, and usually is one or two. Note that when $D = 0$ this reduces to a standard kernel smoothing problem.
+
+$K_h$ is a kernel function with bandwidth parameter $h$, which here is used to determine the weights. It is usually defined in terms of a base function $K$
+\begin{equation}
+K_h(m_i, m) = \frac{1}{h} K\left(\frac{m_i - m}{h}\right)
+\end{equation}
+Increasing $h$ increases the amount of smoothing that is done, decreasing the variance of the estimate but increasing the bias. It is usually chosen to minimize the overall risk of the estimator.
+
+Local linear regression requires similar assumptions as kernel smoothing, namely that the true function $y(m)$ is somewhat smooth. This condition can be satisfied by the existence of one or more derivatives, or some other condition such as Lipshitz continuity. The ``smoother'' the function is, the better we expect local linear regression to perform in terms of bias. For yield curve estimation, these assumptions are natural. There are theoretical reasons to believe that very similar bonds should have similar yields, and the data usually seems to satisfy these conditions except for a couple of outliers.
+
+For yield curve estimation, smoothing splines are another commonly used nonparametric regression technique. For instance, the U.S. Treasury's official yield curve estimates are estimated using a quasi-cubic hermite spline function.\footnote{See \url{http://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/yieldmethod.aspx} for the Treasury's yield curve methodology.} I expect that splines and local linear regression will have very similar estimates, so I use local linear regression here for simplicity. Wavelets are not particularly well-suited for this problem, as the yield curves are usually smooth and do not have the extreme scale changes or discontinuities that wavelets are designed to handle.
 
 
+\subsection{Estimation}
+
+For the rest of this paper, we will use 2-degree local linear regressions with the tricube kernel.\footnote{The tricube kernel is defined as $K(x) = \frac{70}{81} (1 - \abs{x}^3)^3 \I_{\{\abs{x} \leq 1\}}$. Other popular choices include the Gaussian and Epanechnikov kernels.} The bandwidth parameter for each regression is chosen by minimizing the generalized cross-validation estimate of the risk.
+
+Figure~\ref{fig:ex_loclin} shows local linear fits on the same two days used in Figure~\ref{fig:ex_ns}. The local linear regression performs very well for the day shown in Panel~\subref{fig:ex_loclin_1-12-2012}, fitting the line very closely. The regression in Panel~\subref{fig:ex_loclin_6-14-2006} also seems to fit the data extremely well, managing to both capture the sharp changes at low maturities and fit the long maturity data well.
 
 \begin{figure}[htb] \centering
     \begin{subfigure}[t]{.49\linewidth}
@@ -182,16 +222,10 @@ Panel~\subref{fig:ex_ns_6-14-2006} shows the fit on a more complicated day. Here
     \label{fig:ex_loclin}
 \end{figure}
 
+95\% confidence bands are also shown for both regressions. Panel~\subref{fig:ex_loclin_1-12-2012} has extremely narrow error bands, while the error bands in Panel~\subref{fig:ex_loclin_6-14-2006} are significantly wider for most of the function. This matches are expectations, as the second function seems to be more difficult to fit and there are more outlier data points. Note that these confidence do not necessarily trap the true function, only the mean of the estimators. There does not, however, seem to be any significant bias for these examples.
 
 
-\begin{figure}[htb]
-    \centering
-    \includegraphics[width=.8\linewidth]{include/comparison_2006-06-14.pdf}
-    \caption{Estimated yield curves on June 14, 2006. Fitted values from a local linear regression and a parametric Svensson model are shown.}
-    \label{fig:comparison_bad}
-\end{figure}
-
-
+\subsection{Finding Important Events}
 
 \begin{figure}[htb] \centering
     \begin{subfigure}[t]{.49\linewidth}
@@ -205,6 +239,28 @@ Panel~\subref{fig:ex_ns_6-14-2006} shows the fit on a more complicated day. Here
     \caption{Estimated yield curves on consecutive business days around selected major financial events. Panel a shows the reaction to the fall of Lehman Brothers on September 15, 2008. Panel b shows the reaction to the Federal Reserve's announcement of its first large-scale asset purchase program for Treasury bonds on March 18, 2009. }
     \label{fig:events}
 \end{figure}
+
+
+
+%===========================================================================%
+\section{Discussion}
+%===========================================================================%
+
+Panels~\ref{fig:ex_ns_1-12-2012} and~\ref{fig:ex_loclin_1-12-2012} show how both the parametric Svensson model and the nonparametric local linear regression fit the data very well when the yields are well-behaved and relatively ``normal''. Both methods give similar fits that closely match the data and have very narrow confidence bands.
+
+However, when the data does not conform to expectations the two models can diverge. Figure~\ref{fig:comparison_bad} compares the two methods on June 14, 2006. As discussed above, the Svensson model has difficulty fitting medium- to long-term maturities, while the local linear regressions does an extremely good job for the entire range of the data.
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=.7\linewidth]{include/comparison_2006-06-14.pdf}
+    \caption{Estimated yield curves on June 14, 2006. Fitted values from a local linear regression and a parametric Svensson model are shown.}
+    \label{fig:comparison_bad}
+\end{figure}
+
+These yield curve estimations often must be done for a large number of daily datasets, e.g. every day for the entire timespan of available data, often more than 50 years. This means that outlier days such as the one shown in Figure~\ref{fig:comparison_bad} are likely to be seen many times. These examples show that the additional flexibility of local linear regression is likely to be more valuable than the more parsimonious Svensson model, especially when the fitted yields will be used as inputs into other models, as if often done in economic and financial research.
+
+
+
 
 
 
