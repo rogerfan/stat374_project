@@ -94,16 +94,31 @@ data = read.csv("./data/treasury_data.csv")
 data$date = as.Date(data$date)
 
 
-ex_dates = c('2006-06-14', '2012-01-12')
+ex_dates = c('2006-06-14', '2007-10-26', '2008-03-27',
+             '2010-01-12', '2012-04-09')
+# ex_dates = c()
+
+
 
 # Example data
 df = data.frame()
 for (ex_date in ex_dates) {
-    datum = data[data$date == as.Date(date),]
+    datum = data[data$date == as.Date(ex_date),]
     datum$variable = 'Raw Yields'
-    results[[1]] = datum
+    df_temp = data.frame(maturity=datum$maturity, yield=datum$yield,
+                         date=format(as.Date(ex_date), format="%B %d, %Y"))
+    df = rbind(df, df_temp)
 }
+df$date = factor(df$date, ordered=TRUE)
 
+
+gplot = ggplot(df, aes(x=maturity, y=yield, color=date)) +
+    geom_point(alpha=.6) + scale_color_brewer(palette="Set1")
+
+pdf("./include/ex_yields.pdf", height=4.5, width=6,
+    family='CM Roman')
+print(ggplot.format(gplot))
+dev.off()
 
 # Example curve fits
 ex_dates = c('2006-06-14', '2012-01-12')

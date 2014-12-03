@@ -102,13 +102,20 @@
 \section{Introduction}
 %===========================================================================%
 
-U.S. Treasuries are the standard riskless asset, and because of that they have many important applications and uses in economics and finance. Their yields are often used in economics to approximate the sum of expected inflation and the discount function, or time-value of money, without having to worry about risk premiums. In finance, they have a myriad of uses, including benchmarking other assets, hedging risk, and being liquid collateral or short-term investments. Treasuries are an integral part of the financial system, much of the activity of traders, dealers, and clearinghouses involves Treasuries in some way.
+U.S. Treasuries are the standard riskless asset, and because of that they have many important applications and uses in economics and finance. Their yields are often used in economics to approximate the sum of expected inflation and the discount function, or time-value of money, without having to worry about risk premiums. In finance, they have a myriad of uses, including benchmarking other assets, hedging risk, and providing a source of liquid collateral or short-term investments. Treasuries are an integral part of the financial system, much of the activity of traders, dealers, and clearinghouses involves Treasuries in some way.
 
-For many of these applications, having the yield as a smooth function of the maturity of the bond is useful. This is because Treasuries are not constantly being issued, so there are often gaps in the available maturities each day. If a bond is indexed to the 10-year Treasury yield, we need a way to estimate that yield if there are no Treasuries with exactly that much time left to maturity.
+For many of these applications, having the yield as a smooth function of the maturity of the bond is useful. This is because Treasuries are not constantly being issued, so there are often gaps in the available maturities each day. If another security is indexed to the 10-year Treasury yield, we need a way to estimate that yield if there are no Treasuries with exactly that much time left to maturity.
 
-Measuring a Treasury's yield is also not as straightforward as it might seem. On any given day, the price on a given Treasury issue (note that prices are inverse to yields, yields go down whe prices go up) may be affected by any number of idiosyncratic factors. Individual issues may have much lower or higher prices than expected due to random market factors, such as a major dealer needing to cover a large position. There are also several well-known price effects, such as the on-the-run premium, where recently-issued Treasuries usually have significantly higher prices.
+Measuring a Treasury's yield is also not as straightforward as it might seem. On any given day, the price on a given Treasury issue (note that prices are inverse to yields, yields go down when prices go up) may be affected by any number of idiosyncratic factors. Individual issues may have much lower or higher prices than expected due to random market factors, such as a major dealer needing to cover a large position. There are also several well-known price effects, such as the on-the-run premium, where recently-issued Treasuries usually have significantly higher prices.
 
-In order to study the estimation of these yield curves, we use Treasury yield data from the Center for Research in Security Prices (CRSP), University of Chicago Booth School of Business. These data are available from Wharton Research Data Services (WRDS)\footnote{\url{http://wrds-web.wharton.upenn.edu/wrds/}}. They include end-of-day Treasury yields on the entire cross-section of available Treasury notes and bonds for the last 50 years, though we will only use data from several specific days to illustrate the methods. Note that we omit Treasury bills and other forms of Treasury debt, limiting the data to outstanding notes and bonds. Figure~\ref{fig:ex_ns} shows yields plotted against maturities for two example days, January 12, 2012 and June 14, 2006.
+In order to study the estimation of these yield curves, we use Treasury yield data from the Center for Research in Security Prices (CRSP), University of Chicago Booth School of Business. These data are available from Wharton Research Data Services (WRDS)\footnote{\url{http://wrds-web.wharton.upenn.edu/wrds/}}. They include end-of-day Treasury yields on the entire cross-section of available Treasury notes and bonds for the last 50 years, though we will only use data from several specific days to illustrate the methods. Note that we omit Treasury bills and other forms of Treasury debt, limiting the data to outstanding notes and bonds. Figure~\ref{fig:ex_yields} shows yields plotted against maturities for several example days. We can see that yield curves can take on various shapes and sizes, but that they tend to be fairly smooth and have relatively few outliers.
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=.8\linewidth]{include/ex_yields.pdf}
+    \caption{Yields curves from several example days. Yields are in basis points, while maturities are in years.}
+    \label{fig:ex_yields}
+\end{figure}
 
 In terms of data preparation and cleaning, little was done.\footnote{The code used for data preparation as well as all of the following estimations is available at \url{https://github.com/rogerfan/stat374_project/}.} Bond maturity is converted from days to years and yields are converted from daily yields measured in percentage points to annual yields measured in basis points.\footnote{One percentage point is 100 basis points.} We deliberately leave outlier points in the data, as robustness to outliers is a desirable property for any smoothing method used.
 
@@ -119,16 +126,16 @@ In terms of data preparation and cleaning, little was done.\footnote{The code us
 
 \subsection{Model}
 
-An early standard parametric used to fit yield curves was introduced by \citet{nelsonsiegel1987}. The Nelson-Siegel approach does not have a theoretical underpinning, it is simply an attempt to find a functional form that can capture the common yield-curve shapes. The function they ultimately suggest is
+A standard parametric used to fit yield curves was introduced by \citet{nelsonsiegel1987}. The Nelson-Siegel approach does not have a theoretical underpinning, it is simply an attempt to find a functional form that can capture common yield-curve shapes. The function they ultimately suggest is
 \begin{equation}
 \hat{y}(m) = \beta_0
     + \beta_1 \frac{1-\exp(-m/\tau)}{m/\tau}
     + \beta_2 \left( \frac{1-\exp(-m/\tau)}{m/\tau} - \exp(-m/\tau) \right)
 \label{eq:ns}
 \end{equation}
-where $y$ is the yield, $m$ is the maturity, and $\beta_0$, $\beta_1$, $\beta_2$, and $\tau$ are parameters to be estimated. This function has an initial value and asymptote defined by $\beta_0$ and $\beta_1$, then adds a ``hump'' in the middle, whose location and size are determined by $\beta_2$ and $\tau$, respectively.
+where $y$ is the yield, $m$ is the maturity, and $\beta_0$, $\beta_1$, $\beta_2$, and $\tau$ are parameters to be estimated. This function has an initial value and asymptote defined by $\beta_0$ and $\beta_1$, then adds a ``hump'' in the middle, whose size and location are determined by $\beta_2$ and $\tau$, respectively.
 
-The Nelson-Siegel method tends to fit short- to medium- term yields well, but often fit longer-term yield poorly. To improve the fit, \citet{svensson1994} added an additional term, resulting in
+The Nelson-Siegel method tends to fit short- to medium- term yields well, but does not perform as well on longer-term yields. To improve the fit, \citet{svensson1994} added an additional term, resulting in
 \begin{align}
 \begin{split}
 \hat{y}(m) &= \beta_0
@@ -145,7 +152,7 @@ The primary alternative parametric method for fitting yield curves is fitting a 
 \begin{equation*}
 \hat{y}(m) = \beta_0 + \sum_{k=1}^K \beta_k m^k
 \end{equation*}
-Polynomial methods, however, are not preferred, as they result in arbitrarily high or low (negative) predictions for very long maturities. This is an undesirable property, as theory generally dictates that the yields asymptote to some constant value at higher maturities. The Nelson-Siegel and Svensson models are designed to do this and result in similar fits as polynomial methods for maturities within the data range. In practice, polynomial curves are almost never used.
+Polynomial methods, however, always result in arbitrarily high or low (negative) predictions for very long maturities. This is an undesirable property, as theory generally dictates that the yields asymptote to some constant value at higher maturities. The Nelson-Siegel and Svensson models are designed to do this and result in similar fits as polynomial methods for maturities within the data range. In practice, polynomial curves are almost never used over Nelson-Siegel and its related methods.
 
 
 \subsection{Estimation}
@@ -180,7 +187,7 @@ Panel~\subref{fig:ex_ns_6-14-2006} shows the fit on a more complicated day. Here
 
 \subsection{Model}
 
-One of the most commonly used nonparametric regression techniques is a local linear regression. This is a generalization of kernel smoothing where we perform a weighted regression around each of the data points and use the predicted intercept as the estimate.
+One of the most commonly used nonparametric regression techniques is a local linear regression. This is a generalization of kernel smoothing, where we perform a weighted regression around each of the data points and use the predicted intercept as the estimate.
 \begin{equation}
 \begin{gathered}
 \hat{y}(m) = \hat{\beta}_0(m) \text{ where}\\
@@ -192,22 +199,22 @@ One of the most commonly used nonparametric regression techniques is a local lin
 \end{equation}
 $D$ is the number of polynomial degrees in the local regression, and usually is one or two. Note that when $D = 0$ this reduces to a standard kernel smoothing problem.
 
-$K_h$ is a kernel function with bandwidth parameter $h$, which here is used to determine the weights. It is usually defined in terms of a base function $K$
+$K_h$ is a kernel function with bandwidth parameter $h$, which here is used to determine the weights. It is usually in terms of a base function $K$
 \begin{equation}
 K_h(m_i, m) = \frac{1}{h} K\left(\frac{m_i - m}{h}\right)
 \end{equation}
-Increasing $h$ increases the amount of smoothing that is done, decreasing the variance of the estimate but increasing the bias. It is usually chosen to minimize the overall risk of the estimator.
+Increasing $h$ increases the amount of smoothing, decreasing the variance of the estimate but increasing the bias. It is usually chosen to minimize the overall risk of the estimator.
 
-Local linear regression requires similar assumptions as kernel smoothing, namely that the true function $y(m)$ is somewhat smooth. This condition can be satisfied by the existence of one or more derivatives, or some other condition such as Lipshitz continuity. The ``smoother'' the function is, the better we expect local linear regression to perform in terms of bias. For yield curve estimation, these assumptions are natural. There are theoretical reasons to believe that very similar bonds should have similar yields, and the data usually seems to satisfy these conditions except for a couple of outliers.
+Local linear regression requires similar assumptions as kernel smoothing, namely that the true function $y(m)$ is somehow smooth. This condition can be satisfied by the existence of one or more derivatives, or some other condition such as Lipshitz continuity. The ``smoother'' the function is, the better we expect local linear regression to perform in terms of bias. For yield curve estimation, these assumptions are natural. There are theoretical reasons to believe that very similar bonds should have similar yields, and the data usually seems to satisfy these conditions, as seen in Figure~\ref{fig:ex_yields}.
 
-For yield curve estimation, smoothing splines are another commonly used nonparametric regression technique. For instance, the U.S. Treasury's official yield curve estimates are estimated using a quasi-cubic hermite spline function.\footnote{See \url{http://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/yieldmethod.aspx} for the Treasury's yield curve methodology.} I expect that splines and local linear regression will have very similar estimates, so I use local linear regression here for simplicity. Wavelets are not particularly well-suited for this problem, as the yield curves are usually smooth and do not have the extreme scale changes or discontinuities that wavelets are designed to handle.
+For yield curve estimation, smoothing splines are another commonly used nonparametric regression technique. For instance, the U.S. Treasury's official yield curve estimates are estimated using a quasi-cubic hermite spline function.\footnote{See \url{http://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/yieldmethod.aspx} for the Treasury's yield curve methodology.} I expect that splines and local linear regression will have very similar estimates, so I use local linear regression here for simplicity. Another alternative is to use wavelet regression. However, they are not particularly well-suited for this problem, as the yield curves are usually smooth and do not have the extreme scale changes or discontinuities that wavelets are designed to handle.
 
 
 \subsection{Estimation}
 
 For the rest of this paper, we will use 2-degree local linear regressions with the tricube kernel.\footnote{The tricube kernel is defined as $K(x) = \frac{70}{81} (1 - \abs{x}^3)^3 \I_{\{\abs{x} \leq 1\}}$. Other popular choices include the Gaussian and Epanechnikov kernels.} The bandwidth parameter for each regression is chosen by minimizing the generalized cross-validation estimate of the risk.
 
-Figure~\ref{fig:ex_loclin} shows local linear fits on the same two days used in Figure~\ref{fig:ex_ns}. The local linear regression performs very well for the day shown in Panel~\subref{fig:ex_loclin_1-12-2012}, fitting the line very closely. The regression in Panel~\subref{fig:ex_loclin_6-14-2006} also seems to fit the data extremely well, managing to both capture the sharp changes at low maturities and fit the long maturity data well.
+Figure~\ref{fig:ex_loclin} shows local linear fits on the same two days shown in Figure~\ref{fig:ex_ns}. The local linear regression performs very well for the day shown in Panel~\subref{fig:ex_loclin_1-12-2012}, fitting the line very closely. The regression in Panel~\subref{fig:ex_loclin_6-14-2006} also seems to fit the data extremely well, managing to both capture the sharp changes at low maturities and fit the long maturity data well.
 
 \begin{figure}[htb] \centering
     \begin{subfigure}[t]{.49\linewidth}
@@ -222,10 +229,14 @@ Figure~\ref{fig:ex_loclin} shows local linear fits on the same two days used in 
     \label{fig:ex_loclin}
 \end{figure}
 
-95\% confidence bands are also shown for both regressions. Panel~\subref{fig:ex_loclin_1-12-2012} has extremely narrow error bands, while the error bands in Panel~\subref{fig:ex_loclin_6-14-2006} are significantly wider for most of the function. This matches are expectations, as the second function seems to be more difficult to fit and there are more outlier data points. Note that these confidence do not necessarily trap the true function, only the mean of the estimators. There does not, however, seem to be any significant bias for these examples.
+95\% confidence bands are also shown for both regressions. Note that these confidence bands do not necessarily trap the true function, only the mean of the estimator at each point. There does not, however, seem to be any significant bias for these examples.
 
 
-\subsection{Finding Important Events}
+\subsection{Financial Events}
+
+A practical use for these confidence bands is to determine the effects of important financial events. In finance, it is often assumed that information is incorporated into prices (and therefore yields) fairly quickly upon release. Assumptions like this are usually some form of the efficient market hypothesis. This means that the effect of events can be measured by the market reaction as the information comes out.
+
+Figure~\ref{fig:events} shows how we can use local linear regression and its associate confidence bands to quantify and visualize the effect of financial events. Each of the panels shows the fitted yield curve for the two business days before the event and at the end-of-day after the event.
 
 \begin{figure}[htb] \centering
     \begin{subfigure}[t]{.49\linewidth}
@@ -240,6 +251,9 @@ Figure~\ref{fig:ex_loclin} shows local linear fits on the same two days used in 
     \label{fig:events}
 \end{figure}
 
+Panel~\ref{fig:events_lehman} shows the yield curves around when Lehman Brother's declared bankrupty, often considered one of the proximate causes of the financial crisis of 2007. In the days before September 15th, 2008, many market participants still believed that the Federal Reserve (the Fed) would step in to prevent a bankruptcy. When Lehman Brothers was allowed to go bankrupt, traders rushed towards the safe heaven of Treasury bonds, driving their prices up and yields down. This event is clearly identifiable in the fitted yield curves, as the estimates on September 15th are significantly lower for the entire range of maturities.
+
+Panel~\ref{fig:events_lsap} shows the yield curves around the Fed's announcement of its first large-scale asset purchase program for Treasury bonds. By purchasing large amounts of medium- and long-term Treasury bonds, the Fed hoped to increase prices and drive down yields, therefore stimulating investment in the economy. We can see that this program was effective at lowering yields. Just by announcing the program, the Fed drove down yields significantly. Also note that the difference in yields was largest for medium-term securities, which is where the Fed focused its purchases, and smallest for very short-term securities which the Fed did not plan to purchase.
 
 
 %===========================================================================%
@@ -257,14 +271,10 @@ However, when the data does not conform to expectations the two models can diver
     \label{fig:comparison_bad}
 \end{figure}
 
-These yield curve estimations often must be done for a large number of daily datasets, e.g. every day for the entire timespan of available data, often more than 50 years. This means that outlier days such as the one shown in Figure~\ref{fig:comparison_bad} are likely to be seen many times. These examples show that the additional flexibility of local linear regression is likely to be more valuable than the more parsimonious Svensson model, especially when the fitted yields will be used as inputs into other models, as if often done in economic and financial research.
+These yield curve estimations often must be done for a large number of daily datasets, e.g. every day for the entire timespan of available data, often more than 50 years. This means that abnormal days such as the one shown in Figure~\ref{fig:comparison_bad} are likely to be seen many times. The additional flexibility of local linear regression is likely to be more valuable than the more parsimonious Svensson model, especially when the fitted yields will be used as inputs into other models, as if often done in economic and financial research.
 
 
-
-
-
-
-\vfill
+% \vfill
 %===========================================================%
 %                                                           %
 %   Bibliography                                            %
